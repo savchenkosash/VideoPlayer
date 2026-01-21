@@ -10,18 +10,18 @@ import Foundation
 
 @MainActor
 final class VideoManager: ObservableObject {
+
     @Published var player: AVPlayer?
 
     private var playerItems: [AVPlayerItem] = []
     private var videoNames: [String] = []
     private var currentIndex: Int = 0
     private var loopTask: Task<Void, Never>?
-    private var isSetup: Bool = false
 
     private let lastVideoIndexKey = "VideoManager.lastVideoIndex"
     private let lastVideoTimeKey  = "VideoManager.lastVideoTime"
 
-    // 🔹 Новый метод — задаём список видео
+    // 🔹 Задаём список видео
     func setVideoList(_ videos: [String]) {
         self.videoNames = videos
         self.playerItems = videos.compactMap { name in
@@ -31,13 +31,18 @@ final class VideoManager: ObservableObject {
     }
 
     func setupPlayer() {
-        guard !isSetup else { return }
+        // 🔹 Если плеер уже есть, ничего не делаем
+        guard player == nil else {
+            print("⚠️ AVPlayer уже создан — пропускаем setup")
+            return
+        }
+
         guard !playerItems.isEmpty else {
             print("❌ VideoManager: нет видео для воспроизведения")
             return
         }
-        isSetup = true
-
+        
+        // Воспроизведение с сохранённой позиции
         let savedIndex = UserDefaults.standard.integer(forKey: lastVideoIndexKey)
         let savedTime  = UserDefaults.standard.double(forKey: lastVideoTimeKey)
         currentIndex = min(savedIndex, playerItems.count - 1)
@@ -113,7 +118,6 @@ final class VideoManager: ObservableObject {
         playerItems.removeAll()
         videoNames.removeAll()
         currentIndex = 0
-//        isSetup = false
     }
 }
 
@@ -247,97 +251,94 @@ final class VideoManager: ObservableObject {
 
  */
 
+/* import AVKit
+ import Foundation
 
+ @MainActor
+ final class VideoManager: ObservableObject {
 
+     @Published var player: AVPlayer?
 
-//import AVKit
-//import Foundation
-//
-//@MainActor
-//final class VideoManager: ObservableObject {
-//
-//    @Published var player: AVPlayer?
-//
-//    private var playerItems: [AVPlayerItem] = []
-//    private var currentIndex: Int = 0
-//    private var loopTask: Task<Void, Never>?
-//
-//    // MARK: - Setup
-//
-//    func setupPlayer() {
-//        // Имена видео без расширения
-//        let videoNames = ["video1", "video2", "video3"]
-//
-//        let items = videoNames.compactMap { name -> AVPlayerItem? in
-//            guard let url = Bundle.main.url(forResource: name, withExtension: "mp4") else {
-//                print("Видео \(name).mp4 не найдено")
-//                return nil
-//            }
-//            return AVPlayerItem(url: url)
-//        }
-//
-//        guard !items.isEmpty else { return }
-//
-//        self.playerItems = items
-//        self.currentIndex = 0
-//
-//        let player = AVPlayer(playerItem: items[0])
-//        self.player = player
-//
-//        startObservingEndOfItem(item: items[0])
-//        player.play()
-//    }
-//
-//    // MARK: - Video switching logic
-//
-//    private func startObservingEndOfItem(item: AVPlayerItem) {
-//        loopTask?.cancel()
-//
-//        loopTask = Task {
-//            for await _ in NotificationCenter.default.notifications(
-//                named: .AVPlayerItemDidPlayToEndTime,
-//                object: item
-//            ) {
-//                guard !Task.isCancelled else { return }
-//
-//                await MainActor.run {
-//                    self.playNextVideo()
-//                }
-//            }
-//        }
-//    }
-//
-//    private func playNextVideo() {
-//        currentIndex += 1
-//
-//        // 🔁 ВАРИАНТ 1: начать сначала
-////        if currentIndex >= playerItems.count {
-////            currentIndex = 0
-////        }
-//
-//        // ❌ ВАРИАНТ 2: остановиться в конце
-//         if currentIndex >= playerItems.count {
-//             player?.pause()
-//             return
-//         }
-//
-//        let nextItem = playerItems[currentIndex]
-//        player?.replaceCurrentItem(with: nextItem)
-//        startObservingEndOfItem(item: nextItem)
-//        player?.play()
-//    }
-//
-//    // MARK: - Cleanup
-//
-//    func cleanupPlayer() {
-//        loopTask?.cancel()
-//        loopTask = nil
-//        player?.pause()
-//        player = nil
-//        playerItems.removeAll()
-//        currentIndex = 0
-//    }
-//}
+     private var playerItems: [AVPlayerItem] = []
+     private var currentIndex: Int = 0
+     private var loopTask: Task<Void, Never>?
+
+     // MARK: - Setup
+
+     func setupPlayer() {
+         // Имена видео без расширения
+         let videoNames = ["video1", "video2", "video3"]
+
+         let items = videoNames.compactMap { name -> AVPlayerItem? in
+             guard let url = Bundle.main.url(forResource: name, withExtension: "mp4") else {
+                 print("Видео \(name).mp4 не найдено")
+                 return nil
+             }
+             return AVPlayerItem(url: url)
+         }
+
+         guard !items.isEmpty else { return }
+
+         self.playerItems = items
+         self.currentIndex = 0
+
+         let player = AVPlayer(playerItem: items[0])
+         self.player = player
+
+         startObservingEndOfItem(item: items[0])
+         player.play()
+     }
+
+     // MARK: - Video switching logic
+
+     private func startObservingEndOfItem(item: AVPlayerItem) {
+         loopTask?.cancel()
+
+         loopTask = Task {
+             for await _ in NotificationCenter.default.notifications(
+                 named: .AVPlayerItemDidPlayToEndTime,
+                 object: item
+             ) {
+                 guard !Task.isCancelled else { return }
+
+                 await MainActor.run {
+                     self.playNextVideo()
+                 }
+             }
+         }
+     }
+
+     private func playNextVideo() {
+         currentIndex += 1
+
+         // 🔁 ВАРИАНТ 1: начать сначала
+ //        if currentIndex >= playerItems.count {
+ //            currentIndex = 0
+ //        }
+
+         // ❌ ВАРИАНТ 2: остановиться в конце
+          if currentIndex >= playerItems.count {
+              player?.pause()
+              return
+          }
+
+         let nextItem = playerItems[currentIndex]
+         player?.replaceCurrentItem(with: nextItem)
+         startObservingEndOfItem(item: nextItem)
+         player?.play()
+     }
+
+     // MARK: - Cleanup
+
+     func cleanupPlayer() {
+         loopTask?.cancel()
+         loopTask = nil
+         player?.pause()
+         player = nil
+         playerItems.removeAll()
+         currentIndex = 0
+     }
+ }
 
 
 
@@ -346,62 +347,65 @@ final class VideoManager: ObservableObject {
 
 
 
-//import AVKit
-//import Foundation
-//
-//@MainActor
-//final class VideoManager: ObservableObject {
-//
-//    @Published var player: AVPlayer?
-//
-//    private var playerItem: AVPlayerItem?
-//    private var loopTask: Task<Void, Never>?
-//
-//    // MARK: - Setup
-//
-//    func setupPlayer() {
-//        guard let url = Bundle.main.url(forResource: "video", withExtension: "mp4") else {
-//            print("Видео не найдено")
-//            return
-//        }
-//
-//        let item = AVPlayerItem(url: url)
-//        let player = AVPlayer(playerItem: item)
-//
-//        self.playerItem = item
-//        self.player = player
-//
-//        startLooping()
-//    }
-//
-//    // MARK: - Loop logic (async / await)
-//
-//    private func startLooping() {
-//        guard let item = playerItem else { return }
-//
-//        loopTask = Task {
-//            for await _ in NotificationCenter.default.notifications(
-//                named: .AVPlayerItemDidPlayToEndTime,
-//                object: item
-//            ) {
-//                guard !Task.isCancelled else { return }
-//
-//                await MainActor.run {
-//                    self.player?.seek(to: .zero)
-//                    self.player?.play()
-//                }
-//            }
-//        }
-//    }
-//
-//    // MARK: - Cleanup
-//
-//    func cleanupPlayer() {
-//        loopTask?.cancel()
-//        loopTask = nil
-//
-//        player?.pause()
-//        player = nil
-//        playerItem = nil
-//    }
-//}
+ import AVKit
+ import Foundation
+
+ @MainActor
+ final class VideoManager: ObservableObject {
+
+     @Published var player: AVPlayer?
+
+     private var playerItem: AVPlayerItem?
+     private var loopTask: Task<Void, Never>?
+
+     // MARK: - Setup
+
+     func setupPlayer() {
+         guard let url = Bundle.main.url(forResource: "video", withExtension: "mp4") else {
+             print("Видео не найдено")
+             return
+         }
+
+         let item = AVPlayerItem(url: url)
+         let player = AVPlayer(playerItem: item)
+
+         self.playerItem = item
+         self.player = player
+
+         startLooping()
+     }
+
+     // MARK: - Loop logic (async / await)
+
+     private func startLooping() {
+         guard let item = playerItem else { return }
+
+         loopTask = Task {
+             for await _ in NotificationCenter.default.notifications(
+                 named: .AVPlayerItemDidPlayToEndTime,
+                 object: item
+             ) {
+                 guard !Task.isCancelled else { return }
+
+                 await MainActor.run {
+                     self.player?.seek(to: .zero)
+                     self.player?.play()
+                 }
+             }
+         }
+     }
+
+     // MARK: - Cleanup
+
+     func cleanupPlayer() {
+         loopTask?.cancel()
+         loopTask = nil
+
+         player?.pause()
+         player = nil
+         playerItem = nil
+     }
+ }
+ */
+
+

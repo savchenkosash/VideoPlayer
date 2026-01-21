@@ -18,7 +18,7 @@ struct ContentView: View {
             
             ZStack(alignment: .bottom) {
                 
-                VideoPlayerView(videoManager: videoManager, videoNames: ["video1", "video2"])
+                VideoPlayerView(videoManager: videoManager, videoNames: ["video1", "video2", "video3"])
                 
                 NavigationLink("Second View") {
                     SecondView()

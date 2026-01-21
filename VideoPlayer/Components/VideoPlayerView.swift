@@ -20,9 +20,6 @@ struct VideoPlayerView: View {
                     print("Appear")
                     videoManager.setVideoList(videoNames)
                     videoManager.setupPlayer()
-                    
-//                    videoManager.player?.play()
-                    
                 }
                 .onDisappear {
                     print("Disappear")
@@ -35,11 +32,10 @@ struct VideoPlayerView: View {
                 .ignoresSafeArea()
                 .edgesIgnoringSafeArea(.all)
                 .overlay(Color.white.opacity(0.3))
-        
     }
     
 }
 
 #Preview {
-    VideoPlayerView(videoManager: VideoManager(), videoNames: ["video1"])
+    VideoPlayerView(videoManager: VideoManager(), videoNames: ["video1", "video2"])
 }
