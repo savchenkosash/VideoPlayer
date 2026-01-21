@@ -11,14 +11,17 @@ import AVKit
 struct VideoPlayerView: View {
     
     @ObservedObject var videoManager: VideoManager
+    var videoNames: [String]
     
     var body: some View {
         
         VideoPlayer(player: videoManager.player)
                 .onAppear {
                     print("Appear")
+                    videoManager.setVideoList(videoNames)
                     videoManager.setupPlayer()
-                    videoManager.player?.play()
+                    
+//                    videoManager.player?.play()
                     
                 }
                 .onDisappear {
@@ -38,5 +41,5 @@ struct VideoPlayerView: View {
 }
 
 #Preview {
-    VideoPlayerView(videoManager: VideoManager())
+    VideoPlayerView(videoManager: VideoManager(), videoNames: ["video1"])
 }
